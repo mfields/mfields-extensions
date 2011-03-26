@@ -38,6 +38,7 @@ class Mfields_Extensions_Post_Type {
 		register_deactivation_hook( __FILE__, array( __class__, 'deactivate' ) );
 		add_action( 'init', array( __class__, 'register_post_type' ), 0 );
 		add_action( 'init', array( __class__, 'register_taxonomies' ), 0 );
+		add_action( 'init', array( __class__, 'customize_wpdb' ) );
 		add_action( 'admin_menu', array( __class__, 'register_meta_boxen' ) );
 		add_action( 'save_post', array( __class__, 'meta_save' ), 10, 2 );
 	}
@@ -80,15 +81,20 @@ class Mfields_Extensions_Post_Type {
 
 		global $wpdb;
 
-		$tablename = mysql_real_escape_string( $wpdb->prefix . 'mfields_authormeta' );
+		$tablename = mysql_real_escape_string( $wpdb->prefix . 'mfields_extension_authormeta' );
 
 		/* Return early if table already exists. */
 		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $tablename ) ) == $tablename ) {
 			return;
 		}
 
+		/*
+		 * This file defines the dbDelta() function which will
+		 * be used to create the custom table.
+		 */
 		$file = ABSPATH . 'wp-admin/includes/upgrade.php';
 
+		/* I fear hardcoded paths. */
 		if ( ! file_exists( $file ) ) {
 			$old_error_handler = set_error_handler( create_function( '$errno, $errstr, $errfile, $errline', "exit( '<p>' . __( 'Author meta table could not be created because upgrade.php could not be found in the wp-admin/includes/ directory.', 'mfields_extension' ) . '</p>' );" ) );
 			trigger_error( '', E_USER_ERROR );
@@ -96,7 +102,8 @@ class Mfields_Extensions_Post_Type {
 
 		require_once( $file );
 
-		dbDelta( "CREATE TABLE IF NOT EXISTS `{$tablename}` (
+		/* Create the custom table for author meta. */
+		dbDelta( "CREATE TABLE `{$tablename}` (
 			`meta_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			`author_id` bigint(20) unsigned NOT NULL DEFAULT '0',
 			`meta_key` varchar(255) DEFAULT NULL,
@@ -111,6 +118,17 @@ class Mfields_Extensions_Post_Type {
 			$old_error_handler = set_error_handler( create_function( '$errno, $errstr, $errfile, $errline', "exit( __( 'Author meta table could not be created.', 'mfields_extension'); );" ) );
 			trigger_error( '', E_USER_ERROR );
 		}
+	}
+	/**
+	 * Customize $wpdb.
+	 *
+	 * Register the author taxonomy's metadata table with the $wpdb object.
+	 *
+	 * @since      2011-02-20
+	 */
+	function customize_wpdb() {
+		global $wpdb;
+		$wpdb->mfields_extension_authormeta = $wpdb->prefix . 'mfields_extension_authormeta';
 	}
 	/**
 	 * Register post_type.
