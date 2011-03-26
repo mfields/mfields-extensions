@@ -171,14 +171,8 @@ class Mfields_Extensions_Post_Type {
 		/* URL. */
 		$key = '_mfields_extensions_url';
 		$url = get_post_meta( get_the_ID(), $key, true );
-		print "\n\t" . '<p><label for="' . esc_attr( $key ) . '">URL</label>';
+		print "\n\t" . '<p><label for="' . esc_attr( $key ) . '">Plugin URL</label>';
 		print "\n\t" . '<input id="' . esc_attr( $key ) . '" type="text" class="widefat" name="' . esc_attr( $key ) . '" value="' . esc_url( $url ) . '" /></p>';
-
-		/* Link Text. */
-		$key = '_mfields_extensions_link_text';
-		$text = get_post_meta( get_the_ID(), $key, true );
-		print "\n\t" . '<p><label for="' . esc_attr( $key ) . '">Link Text</label>';
-		print "\n\t" . '<input id="' . esc_attr( $key ) . '" type="text" class="widefat" name="' . esc_attr( $key ) . '" value="' . esc_attr( $text ) . '" /></p>';
 
 		/* Nonce field. */
 		print "\n" . '<input type="hidden" name="mfields_extensions_meta_nonce" value="' . esc_attr( wp_create_nonce( 'update-mfields_extensions-meta-for-' . get_the_ID() ) ) . '" />';
@@ -189,14 +183,12 @@ class Mfields_Extensions_Post_Type {
 	 * @since      2011-03-12
 	 */
 	function meta_save( $ID, $post ) {
+		
 		/* Local variables. */
 		$ID               = absint( $ID );
-		$unique           = 'mfields_extensions_url';
-		$meta_key         = '_' . $unique;
 		$post_type        = get_post_type();
 		$post_type_object = get_post_type_object( $post_type );
 		$capability       = '';
-		$url              = '';
 
 		/* Do nothing on auto save. */
 		if ( defined( 'DOING_AUTOSAVE' ) && true === DOING_AUTOSAVE ) {
@@ -204,7 +196,7 @@ class Mfields_Extensions_Post_Type {
 		}
 
 		/* Return early if custom value is not present in POST request. */
-		if ( ! isset( $_POST['_mfields_extensions_url'] ) || ! isset( $_POST['_mfields_extensions_link_text'] ) ) {
+		if ( ! isset( $_POST['_mfields_extensions_url'] ) ) {
 			return;
 		}
 
@@ -228,7 +220,6 @@ class Mfields_Extensions_Post_Type {
 
 		/* Save post meta. */
 		update_post_meta( $ID, '_mfields_extensions_url', esc_url_raw( $_POST['_mfields_extensions_url'] ) );
-		update_post_meta( $ID, '_mfields_extensions_link_text', esc_html( $_POST['_mfields_extensions_link_text'] ) );
 
 	}
 }
