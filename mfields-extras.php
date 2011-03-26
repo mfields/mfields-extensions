@@ -1,8 +1,8 @@
 <?php
 /*
-Plugin Name:       Mfields Bookmarks
-Description:       Enables a custom post_type for bookmarks.
-Version:           0.3
+Plugin Name:       Mfields Extensions
+Description:       Enables a custom post_type for downloads on ghostbird.mfields.org.
+Version:           0.1
 Author:            Michael Fields
 Author URI:        http://wordpress.mfields.org/
 License:           GPLv2 or later
@@ -23,25 +23,23 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-class Mfields_Bookmark_Post_Type {
+Mfields_Extensions_Post_Type::init();
+class Mfields_Extensions_Post_Type {
 	/**
-	 * Constructor.
+	 * Initiate.
 	 *
 	 * Hook into WordPress.
 	 *
 	 * @return     void
 	 * @since      2011-02-20
 	 */
-	 function Mfields_Bookmark_Post_Type() {
-		register_activation_hook( __FILE__, array( &$this, 'activate' ) );
-		register_deactivation_hook( __FILE__, array( &$this, 'deactivate' ) );
-		add_action( 'init', array( &$this, 'register_post_type' ), 0 );
-		add_action( 'init', array( &$this, 'register_taxonomies' ), 0 );
-		add_action( 'admin_menu', array( &$this, 'register_meta_boxen' ) );
-		add_action( 'admin_head-post-new.php', array( &$this, 'process_bookmarklet' ) );
-		add_action( 'save_post', array( &$this, 'meta_save' ), 10, 2 );
-		add_filter( 'the_content', array( &$this, 'append_link_to_content' ), 0 );
-		add_filter( 'post_thumbnail_html', array( &$this, 'screenshot' ) );
+	 function init() {
+		register_activation_hook( __FILE__, array( __class__, 'activate' ) );
+		register_deactivation_hook( __FILE__, array( __class__, 'deactivate' ) );
+		add_action( 'init', array( __class__, 'register_post_type' ), 0 );
+		add_action( 'init', array( __class__, 'register_taxonomies' ), 0 );
+		add_action( 'admin_menu', array( __class__, 'register_meta_boxen' ) );
+		add_action( 'save_post', array( __class__, 'meta_save' ), 10, 2 );
 	}
 	/**
 	 * Activation.
@@ -57,14 +55,14 @@ class Mfields_Bookmark_Post_Type {
 	 * @since      2011-02-20
 	 */
 	function activate() {
-		$this->register_post_type();
-		$this->register_taxonomies();
+		call_user_func( array( __class__, 'register_post_type' ) );
+		call_user_func( array( __class__, 'register_taxonomies' ) );
 		flush_rewrite_rules();
 	}
 	/**
 	 * Deactivation.
 	 *
-	 * When a user chooses to deactivate bookmarks it is
+	 * When a user chooses to deactivate extensionss it is
 	 * important to remove all custom object rewrites from
 	 * the database.
 	 *
@@ -77,7 +75,7 @@ class Mfields_Bookmark_Post_Type {
 	/**
 	 * Register post_type.
 	 *
-	 * Registers custom post_type 'mfields_bookmark' with
+	 * Registers custom post_type 'mfields_extensions' with
 	 * WordPress.
 	 *
 	 * This method is hooked into the init action and should
@@ -93,11 +91,11 @@ class Mfields_Bookmark_Post_Type {
 		if ( isset( $_REQUEST['action'] ) && 'deactivate' == $_REQUEST['action'] ) {
 			return;
 		}
-		register_post_type( 'mfields_bookmark', array(
+		register_post_type( 'mfields_extensions', array(
 			'public'        => true,
 			'can_export'    => true,
-			'has_archive'   => 'bookmarks',
-			'rewrite'       => array( 'slug' => 'bookmark', 'with_front' => false ),
+			'has_archive'   => 'extras',
+			'rewrite'       => array( 'slug' => 'extra', 'with_front' => false ),
 			'menu_position' => 3,
 			'supports' => array(
 				'title',
@@ -108,31 +106,25 @@ class Mfields_Bookmark_Post_Type {
 				'custom-fields',
 				),
 			'labels' => array(
-				'name'               => 'Bookmarks',
-				'singular_name'      => 'Bookmark',
+				'name'               => 'Extensions',
+				'singular_name'      => 'Extension',
 				'add_new'            => 'Add New',
-				'add_new_item'       => 'Add New Bookmark',
-				'edit_item'          => 'Edit Bookmark',
-				'new_item'           => 'New Bookmark',
-				'view_item'          => 'View Bookmark',
-				'search_items'       => 'Search Bookmark',
-				'not_found'          => 'No Bookmarks found',
-				'not_found_in_trash' => 'No Bookmarks found in Trash'
+				'add_new_item'       => 'Add New Extension',
+				'edit_item'          => 'Edit Extension',
+				'new_item'           => 'New Extension',
+				'view_item'          => 'View Extension',
+				'search_items'       => 'Search Extensions',
+				'not_found'          => 'No Extensions found',
+				'not_found_in_trash' => 'No Extensions found in Trash'
 				),
-			'decription' => 'I created this section to store webpages that I have read, found interesting or may need to reference in the future. Not all bookmarks found here directly pertain to WordPress.'
+			'decription' => ''
 			)
 		);
 	}
 	/**
 	 * Register taxonomies.
 	 *
-	 * Register all taxonomy's for bookmarks including:
-	 * "Type", "Source", and "Topic".
-	 *
-	 * This function will look for an already installed taxonomy
-	 * named "topic" and, if found, will register it with the
-	 * 'mfields_bookmark' object type. On installations not having
-	 * a global "topic" taxonomy, a new one will be registered.
+	 * Register author taxonomy for extensions post_type.
 	 *
 	 * @return     void
 	 * @since      2011-02-20
@@ -141,117 +133,34 @@ class Mfields_Bookmark_Post_Type {
 		if ( isset( $_REQUEST['action'] ) && 'deactivate' == $_REQUEST['action'] ) {
 			return;
 		}
-		register_taxonomy( 'mfields_bookmark_type', 'mfields_bookmark', array(
+		register_taxonomy( 'mfields_extension_author', 'mfields_extensions', array(
 			'hierarchical'          => true,
-			'query_var'             => 'bookmark_type',
-			'rewrite'               => array( 'slug' => 'bookmark-type' ),
+			'query_var'             => 'extension_author',
+			'rewrite'               => array( 'slug' => 'extension-author' ),
 			'show_tagcloud'         => false,
 			'update_count_callback' => '_update_post_term_count',
 			'labels' => array(
-				'name'              => 'Types',
-				'singular_name'     => 'Type',
-				'search_items'      => 'Search Types',
-				'all_items'         => 'All Types',
-				'parent_item'       => 'Parent Type',
-				'parent_item_colon' => 'Parent Type:',
-				'edit_item'         => 'Edit Type',
-				'update_item'       => 'Update Type',
-				'add_new_item'      => 'Add a New Type',
-				'new_item_name'     => 'New Type Name'
+				'name'              => 'Authors',
+				'singular_name'     => 'Author',
+				'search_items'      => 'Search Authors',
+				'all_items'         => 'All Authors',
+				'parent_item'       => 'Parent Author',
+				'parent_item_colon' => 'Parent Author:',
+				'edit_item'         => 'Edit Author',
+				'update_item'       => 'Update Author',
+				'add_new_item'      => 'Add a New Author',
+				'new_item_name'     => 'New Author Name'
 				)
 			) );
-		register_taxonomy( 'mfields_bookmark_source', 'mfields_bookmark', array(
-			'hierarchical'          => true,
-			'query_var'             => 'bookmark_source',
-			'rewrite'               => array( 'slug' => 'bookmark-source' ),
-			'show_tagcloud'         => false,
-			'update_count_callback' => '_update_post_term_count',
-			'labels' => array(
-				'name'              => 'Sources',
-				'singular_name'     => 'Source',
-				'search_items'      => 'Search Sources',
-				'all_items'         => 'All Sources',
-				'parent_item'       => 'Parent Source',
-				'parent_item_colon' => 'Parent Source:',
-				'edit_item'         => 'Edit Source',
-				'update_item'       => 'Update Source',
-				'add_new_item'      => 'Add a New Source',
-				'new_item_name'     => 'New Source'
-				)
-			) );
-		if ( taxonomy_exists( 'topics' ) ) {
-			register_taxonomy_for_object_type( 'topics', 'mfields_bookmark' );
-		}
-		else {
-			register_taxonomy( "mfields_bookmark_topic", 'post', array(
-				'hierarchical'          => true,
-				'query_var'             => 'bookmark_topic',
-				'rewrite'               => array( 'slug' => 'bookmark-topic' ),
-				'show_tagcloud'         => false,
-				'update_count_callback' => '_update_post_term_count',
-				'labels' => array(
-					'name'              => 'Topics',
-					'singular_name'     => 'Topic',
-					'search_items'      => 'Search Topics',
-					'all_items'         => 'All Topics',
-					'parent_item'       => 'Parent Topic',
-					'parent_item_colon' => 'Parent Topic:',
-					'edit_item'         => 'Edit Topic',
-					'update_item'       => 'Update Topic',
-					'add_new_item'      => 'Add a New Topic',
-					'new_item_name'     => 'New Topic Name'
-					)
-				) );
-		}
-	}
-	/**
-	 * Append Bookmark link to the content.
-	 *
-	 * @since      unknown
-	 */
-	function append_link_to_content( $content ) {
-		if ( 'mfields_bookmark' == get_post_type() ) {
-			$meta = array(
-				'text' => (string) get_post_meta( get_the_ID(), '_mfields_bookmark_link_text', true ),
-				'url'  => (string) esc_url( get_post_meta( get_the_ID(), '_mfields_bookmark_url', true ) ),
-				);
-
-			$text = 'Visit Site';
-			if ( ! empty( $meta['text'] ) ) {
-				$text = $meta['text'];
-			}
-
-			if ( ! empty( $meta['url'] ) ) {
-				$content .= ' <a href="' . esc_url( $meta['url'] ) . '" rel="external">' . esc_html( $text ) . '</a>';
-			}
-		}
-		return $content;
-	}
-	/**
-	 * jQuery to process bookmarklet requests on post-new.php
-	 *
-	 * @since      unknown
-	 */
-	function process_bookmarklet() {
-		if ( isset( $_GET['mfields_bookmark_url'] ) && 'mfields_bookmark' === get_post_type() ) {
-			$url = esc_url( $_GET['mfields_bookmark_url'] );
-			print <<< EOF
-			<script type="text/javascript">
-			jQuery( document ).ready( function ( $ ) {
-				$( '#mfields_bookmark_url' ).val( 'resource_url' );
-			} );
-			</script>
-EOF;
-		}
 	}
 	/**
 	 * Register Metaboxen.
 	 *
-	 * @uses       Mfields_Bookmark_Post_Type::meta_box()
+	 * @uses       Mfields_Extensions_Post_Type::meta_box()
 	 * @since      2011-03-12
 	 */
 	function register_meta_boxen() {
-		add_meta_box( 'mfields_bookmark_meta', 'Bookmark Data', array( &$this, 'meta_box' ), 'mfields_bookmark', 'side', 'high' );
+		add_meta_box( 'mfields_extensions_meta', 'Extension Data', array( __class__, 'meta_box' ), 'mfields_extensions', 'side', 'high' );
 	}
 	/**
 	 * Meta Box.
@@ -260,19 +169,19 @@ EOF;
 	 */
 	function meta_box() {
 		/* URL. */
-		$key = '_mfields_bookmark_url';
+		$key = '_mfields_extensions_url';
 		$url = get_post_meta( get_the_ID(), $key, true );
 		print "\n\t" . '<p><label for="' . esc_attr( $key ) . '">URL</label>';
 		print "\n\t" . '<input id="' . esc_attr( $key ) . '" type="text" class="widefat" name="' . esc_attr( $key ) . '" value="' . esc_url( $url ) . '" /></p>';
 
 		/* Link Text. */
-		$key = '_mfields_bookmark_link_text';
+		$key = '_mfields_extensions_link_text';
 		$text = get_post_meta( get_the_ID(), $key, true );
 		print "\n\t" . '<p><label for="' . esc_attr( $key ) . '">Link Text</label>';
 		print "\n\t" . '<input id="' . esc_attr( $key ) . '" type="text" class="widefat" name="' . esc_attr( $key ) . '" value="' . esc_attr( $text ) . '" /></p>';
 
 		/* Nonce field. */
-		print "\n" . '<input type="hidden" name="mfields_bookmark_meta_nonce" value="' . esc_attr( wp_create_nonce( 'update-mfields_bookmark-meta-for-' . get_the_ID() ) ) . '" />';
+		print "\n" . '<input type="hidden" name="mfields_extensions_meta_nonce" value="' . esc_attr( wp_create_nonce( 'update-mfields_extensions-meta-for-' . get_the_ID() ) ) . '" />';
 	}
 	/**
 	 * Save Meta Data.
@@ -282,7 +191,7 @@ EOF;
 	function meta_save( $ID, $post ) {
 		/* Local variables. */
 		$ID               = absint( $ID );
-		$unique           = 'mfields_bookmark_url';
+		$unique           = 'mfields_extensions_url';
 		$meta_key         = '_' . $unique;
 		$post_type        = get_post_type();
 		$post_type_object = get_post_type_object( $post_type );
@@ -295,17 +204,17 @@ EOF;
 		}
 
 		/* Return early if custom value is not present in POST request. */
-		if ( ! isset( $_POST['_mfields_bookmark_url'] ) || ! isset( $_POST['_mfields_bookmark_link_text'] ) ) {
+		if ( ! isset( $_POST['_mfields_extensions_url'] ) || ! isset( $_POST['_mfields_extensions_link_text'] ) ) {
 			return;
 		}
 
 		/* This function only applies to the following post_types. */
-		if ( ! in_array( $post_type, array( 'mfields_bookmark' ) ) ) {
+		if ( ! in_array( $post_type, array( 'mfields_extensions' ) ) ) {
 			return;
 		}
 
 		/* Terminate script if accessed from outside the administration panels. */
-		check_admin_referer( 'update-mfields_bookmark-meta-for-' . $ID, 'mfields_bookmark_meta_nonce' );
+		check_admin_referer( 'update-mfields_extensions-meta-for-' . $ID, 'mfields_extensions_meta_nonce' );
 
 		/* Find correct capability from post_type arguments. */
 		if ( isset( $post_type_object->cap->edit_posts ) ) {
@@ -318,29 +227,8 @@ EOF;
 		}
 
 		/* Save post meta. */
-		update_post_meta( $ID, '_mfields_bookmark_url', esc_url_raw( $_POST['_mfields_bookmark_url'] ) );
-		update_post_meta( $ID, '_mfields_bookmark_link_text', esc_html( $_POST['_mfields_bookmark_link_text'] ) );
+		update_post_meta( $ID, '_mfields_extensions_url', esc_url_raw( $_POST['_mfields_extensions_url'] ) );
+		update_post_meta( $ID, '_mfields_extensions_link_text', esc_html( $_POST['_mfields_extensions_link_text'] ) );
 
 	}
-	/**
-	 * Screenshot.
-	 *
-	 * This is a modified version of Binary Moon's bm_shots plugin.
-	 * Uses WordPress API to take a screen shot where no featured image
-	 * has been defined. This should be viewed as an emergency fallback
-	 * until a featured image can be acquired.
-	 *
-	 * @since      2011-03-12
-	 */
-	function screenshot( $html ) {
-		if ( empty( $html ) || 'mfields_bookmark' == get_post_type() ) {
-			$url = esc_url( get_post_meta( get_the_ID(), '_mfields_bookmark_url', true ) );
-			if ( ! empty( $url ) ) {
-				$src = 'http://s.wordpress.com/mshots/v1/' . urlencode( $url ) . '?w=150';
-				$html = "\n" . '<a href="' . esc_url( $url ) . '" tabindex="-1"><img src="' . esc_url( $src ) . '" alt="" /></a>';
-			}
-		}
-		return $html;
-	}
 }
-$mfields_bookmark_post_type = new Mfields_Bookmark_Post_Type();
