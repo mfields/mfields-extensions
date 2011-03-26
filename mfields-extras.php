@@ -57,7 +57,11 @@ class Mfields_Extensions_Post_Type {
 	function activate() {
 		call_user_func( array( __class__, 'register_post_type' ) );
 		call_user_func( array( __class__, 'register_taxonomies' ) );
+		call_user_func( array( __class__, 'create_meta_table' ) );
 		flush_rewrite_rules();
+	}
+	function error_table_not_created( $errno, $errstr, $errfile, $errline ) {
+		exit( '<p>' . __( 'Plugin Error: Custom database table could not be created.', 'mfields_extension' ) . '</p>' );
 	}
 	/**
 	 * Deactivation.
@@ -71,6 +75,42 @@ class Mfields_Extensions_Post_Type {
 	 */
 	function deactivate() {
 		flush_rewrite_rules();
+	}
+	function create_meta_table() {
+
+		global $wpdb;
+
+		$tablename = mysql_real_escape_string( $wpdb->prefix . 'mfields_authormeta' );
+
+		/* Return early if table already exists. */
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $tablename ) ) == $tablename ) {
+			return;
+		}
+
+		$file = ABSPATH . 'wp-admin/includes/upgrade.php';
+
+		if ( ! file_exists( $file ) ) {
+			$old_error_handler = set_error_handler( create_function( '$errno, $errstr, $errfile, $errline', "exit( '<p>' . __( 'Author meta table could not be created because upgrade.php could not be found in the wp-admin/includes/ directory.', 'mfields_extension' ) . '</p>' );" ) );
+			trigger_error( '', E_USER_ERROR );
+		}
+
+		require_once( $file );
+
+		dbDelta( "CREATE TABLE IF NOT EXISTS `{$tablename}` (
+			`meta_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			`author_id` bigint(20) unsigned NOT NULL DEFAULT '0',
+			`meta_key` varchar(255) DEFAULT NULL,
+			`meta_value` longtext,
+			PRIMARY KEY (`meta_id`),
+			KEY `comment_id` (`author_id`),
+			KEY `meta_key` (`meta_key`)
+		);" );
+
+		/* Table was not created. Do not install. */
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $tablename ) ) != $tablename ) {
+			$old_error_handler = set_error_handler( create_function( '$errno, $errstr, $errfile, $errline', "exit( __( 'Author meta table could not be created.', 'mfields_extension'); );" ) );
+			trigger_error( '', E_USER_ERROR );
+		}
 	}
 	/**
 	 * Register post_type.
