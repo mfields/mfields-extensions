@@ -188,6 +188,7 @@ class Mfields_Extension_Author {
 		add_action( 'init', array( __class__, 'customize_wpdb' ) );
 		add_filter( 'mfields_open_graph_meta_tags_term_mfields_extension_author', array( __class__, 'open_graph_data' ), 10, 2 );
 		add_action ( 'mfields_extension_author_edit_form_fields', array( __class__, 'meta_controls' ) );
+		add_action ( 'edited_mfields_extension_author', array( __class__, 'meta_save' ) );
 	}
 	/**
 	 * Open Graph Data.
@@ -229,11 +230,11 @@ class Mfields_Extension_Author {
 		/* Create the custom table for author meta. */
 		dbDelta( "CREATE TABLE `{$tablename}` (
 			`meta_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-			`author_id` bigint(20) unsigned NOT NULL DEFAULT '0',
+			`mfields_extension_author_id` bigint(20) unsigned NOT NULL DEFAULT '0',
 			`meta_key` varchar(255) DEFAULT NULL,
 			`meta_value` longtext,
 			PRIMARY KEY (`meta_id`),
-			KEY `comment_id` (`author_id`),
+			KEY `mfields_extension_author_id` (`mfields_extension_author_id`),
 			KEY `meta_key` (`meta_key`)
 		);" );
 
@@ -252,7 +253,7 @@ class Mfields_Extension_Author {
 	 */
 	function customize_wpdb() {
 		global $wpdb;
-		$wpdb->mfields_extension_author = $wpdb->prefix . 'mfields_extension_author';
+		$wpdb->mfields_extension_authormeta = $wpdb->prefix . 'mfields_extension_authormeta';
 	}
 	function meta_controls( $term ) {
 
@@ -296,6 +297,40 @@ class Mfields_Extension_Author {
 		
 		/* Nonce field. */
 		print "\n" . '<input type="hidden" name="' . esc_attr( $term->taxonomy . '_nonce' ) . '" value="' . esc_attr( wp_create_nonce( 'update_' . $term->taxonomy . '_for_' . $term->term_id ) ) . '" />';
+	}
+	function meta_save( $term_id ) {
+		$term_id = absint( $term_id );
+		$taxonomy = get_taxonomy( 'mfields_extension_author' );
+
+		/* Taxonomy must possess the following properties. */
+		if ( ! isset( $taxonomy->name ) ) {
+			return;
+		}
+		if ( ! isset( $taxonomy->cap->edit_terms ) ) {
+			return;
+		}
+
+		/* Capability check. */
+		if ( ! current_user_can( $taxonomy->cap->edit_terms ) ) {
+			return;
+		}
+
+		/* Terminate script if accessed from outside the administration panels. */
+		check_admin_referer( 'update_' . $taxonomy->name . '_for_' . $term_id, $taxonomy->name . '_nonce' );
+		
+		/* Add data to custom meta table. */
+		$key = $taxonomy->name . '_url_website';
+		if ( isset( $_POST[$key] ) ) {
+			update_metadata( $taxonomy->name, $term_id, $key, esc_url_raw( $_POST[$key] ) );
+		}
+		$key = $taxonomy->name . '_url_wordpress';
+		if ( isset( $_POST[$key] ) ) {
+			update_metadata( $taxonomy->name, $term_id, $key, esc_url_raw( $_POST[$key] ) );
+		}
+		$key = $taxonomy->name . '_url_twitter';
+		if ( isset( $_POST[$key] ) ) {
+			update_metadata( $taxonomy->name, $term_id, $key, esc_url_raw( $_POST[$key] ) );
+		}
 	}
 	/**
 	 * Register taxonomies.
