@@ -187,6 +187,7 @@ class Mfields_Extension_Author {
 		add_action( 'init', array( __class__, 'register' ), 0 );
 		add_action( 'init', array( __class__, 'customize_wpdb' ) );
 		add_filter( 'mfields_open_graph_meta_tags_term_mfields_extension_author', array( __class__, 'open_graph_data' ), 10, 2 );
+		add_action ( 'mfields_extension_author_edit_form_fields', array( __class__, 'meta_controls' ) );
 	}
 	/**
 	 * Open Graph Data.
@@ -252,6 +253,49 @@ class Mfields_Extension_Author {
 	function customize_wpdb() {
 		global $wpdb;
 		$wpdb->mfields_extension_author = $wpdb->prefix . 'mfields_extension_author';
+	}
+	function meta_controls( $term ) {
+
+		/* Term must possess the following properties. */
+		if ( ! isset( $term->term_id ) ) {
+			return;
+		}
+		if ( ! isset( $term->taxonomy ) ) {
+			return;
+		}
+
+		/* Website Url. */
+		$id = $term->taxonomy . '_url_website';
+		print "\n" . '<tr class="form-field">';
+		print "\n" . '<th scope="row" valign="top"><label for="' . esc_attr( $id ) . '">' . esc_html__( 'Website', 'mfields-extensions' ) . '</label></th>';
+		print "\n" . '<td>';
+		print "\n" . '<input type="text" name="' . esc_attr( $id ) . '" id="' . esc_attr( $id ) . '" value="' . esc_url( get_metadata( $term->taxonomy, $term->term_id, $id, TRUE ) ) . '" />';
+		print "\n" . '<p class="description">' . esc_html( "Full url to the author's website.", 'mfields-extensions' ) . '</p>';
+		print "\n" . '</td>';
+		print "\n" . '</tr>';
+
+		/* WordPress profile url. */
+		$id = $term->taxonomy . '_url_wordpress';
+		print "\n" . '<tr class="form-field">';
+		print "\n" . '<th scope="row" valign="top"><label for="' . esc_attr( $id ) . '">' . esc_html__( 'WordPress Profile', 'mfields-extensions' ) . '</label></th>';
+		print "\n" . '<td>';
+		print "\n" . '<input type="text" name="' . esc_attr( $id ) . '" id="' . esc_attr( $id ) . '" value="' . esc_url( get_metadata( $term->taxonomy, $term->term_id, $id, TRUE ) ) . '" />';
+		print "\n" . '<p class="description">' . esc_html( "Full url to the author's profile on wordpress.org.", 'mfields-extensions' ) . '</p>';
+		print "\n" . '</td>';
+		print "\n" . '</tr>';
+
+		/* Twitter url. */
+		$id = $term->taxonomy . '_url_twitter';
+		print "\n" . '<tr class="form-field">';
+		print "\n" . '<th scope="row" valign="top"><label for="' . esc_attr( $id ) . '">' . esc_html__( 'Twitter Profile', 'mfields-extensions' ) . '</label></th>';
+		print "\n" . '<td>';
+		print "\n" . '<input type="text" name="' . esc_attr( $id ) . '" id="' . esc_attr( $id ) . '" value="' . esc_url( get_metadata( $term->taxonomy, $term->term_id, $id, TRUE ) ) . '" />';
+		print "\n" . '<p class="description">' . esc_html( "Full url to the author's profile on twitter.com.", 'mfields-extensions' ) . '</p>';
+		print "\n" . '</td>';
+		print "\n" . '</tr>';
+		
+		/* Nonce field. */
+		print "\n" . '<input type="hidden" name="' . esc_attr( $term->taxonomy . '_nonce' ) . '" value="' . esc_attr( wp_create_nonce( 'update_' . $term->taxonomy . '_for_' . $term->term_id ) ) . '" />';
 	}
 	/**
 	 * Register taxonomies.
