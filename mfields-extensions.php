@@ -175,7 +175,6 @@ class Mfields_Extension {
 }
 
 class Mfields_Extension_Author {
-	public static $name = 'extension_author';
 	/**
 	 * Initiate.
 	 *
@@ -252,8 +251,7 @@ class Mfields_Extension_Author {
 	 */
 	function customize_wpdb() {
 		global $wpdb;
-		$name = self::$name;
-		$wpdb->$name = $wpdb->prefix . $name;
+		$wpdb->mfields_extension_author = $wpdb->prefix . 'mfields_extension_author';
 	}
 	/**
 	 * Register taxonomies.
