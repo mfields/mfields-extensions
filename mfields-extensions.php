@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name:       Mfields Extensions
-Description:       Enables a custom post_type for downloads on ghostbird.mfields.org.
+Description:       Enables a custom post_type for plugins and themes on ghostbird.mfields.org.
 Version:           0.1
 Author:            Michael Fields
 Author URI:        http://wordpress.mfields.org/
@@ -68,7 +68,7 @@ class Mfields_Extension {
 				'title',
 				'editor',
 				'excerpt',
-				'comments',
+#				'comments',
 				'thumbnail',
 				'trackbacks',
 				'custom-fields',
